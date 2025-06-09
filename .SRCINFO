@@ -1,19 +1,21 @@
 pkgbase = dmenu-xft-emoji
-	pkgdesc = dmenu with color-font (emoji) and CJK fallback support
+	pkgdesc = dmenu with color‑font (emoji) and CJK fallback support
 	pkgver = 5.2
-	pkgrel = 2
-	url = https://tools.suckless.org/dmenu/
+	pkgrel = 1
+	url = https://github.com/limaon/dmenu-xft-emoji
 	arch = x86_64
 	license = MIT
+	makedepends = git
 	depends = libxft
 	depends = libxinerama
 	depends = fontconfig
 	optdepends = terminus-font: bitmap Terminus for X11
-	source = https://dl.suckless.org/tools/dmenu-5.2.tar.gz
-	source = dmenu-allow-color-font-5.2.diff
+	provides = dmenu
+	conflicts = dmenu
+	conflicts = dmenu-git
+	source = git+https://github.com/limaon/dmenu-xft-emoji.git#tag=v5.2
 	source = config.h
-	sha256sums = d4d4ca77b59140f272272db537e05bb91a5914f56802652dc57e61a773d43792
-	sha256sums = 5d0ad90d272b7a11dce9da914e2777e6e168b38070c02ed057f1d26532e60500
-	sha256sums = 61d81dce7b68fe6fb3b7581a2007ef4e44251e42fbcce7ad1d7b771ea47b6454
+	sha256sums = SKIP
+	sha256sums = SKIP
 
 pkgname = dmenu-xft-emoji
