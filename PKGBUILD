@@ -1,36 +1,39 @@
+# Maintainer: Alvaro Oliveira <alvaro.oliveira@mail.com>
+
 pkgname=dmenu-xft-emoji
 pkgver=5.2
-pkgrel=2
-pkgdesc="dmenu with color-font (emoji) and CJK fallback support"
+pkgrel=1
+pkgdesc="dmenu with color‑font (emoji) and CJK fallback support"
 arch=('x86_64')
-url="https://tools.suckless.org/dmenu/"
+url="https://github.com/limaon/dmenu-xft-emoji"
 license=('MIT')
 
 depends=('libxft' 'libxinerama' 'fontconfig')
 optdepends=('terminus-font: bitmap Terminus for X11')
 
+makedepends=('git')
+
+provides=('dmenu')
+conflicts=('dmenu' 'dmenu-git')
+
 source=(
-  "https://dl.suckless.org/tools/dmenu-${pkgver}.tar.gz"
-  "dmenu-allow-color-font-5.2.diff"
+  "git+https://github.com/limaon/dmenu-xft-emoji.git#tag=v${pkgver}"
   "config.h"
 )
-sha256sums=('d4d4ca77b59140f272272db537e05bb91a5914f56802652dc57e61a773d43792'
-            '5d0ad90d272b7a11dce9da914e2777e6e168b38070c02ed057f1d26532e60500'
-            '61d81dce7b68fe6fb3b7581a2007ef4e44251e42fbcce7ad1d7b771ea47b6454')
+sha256sums=('SKIP' 'SKIP')
 
 prepare() {
-  cd "${srcdir}/dmenu-${pkgver}"
-  patch -Np1 --silent --forward -i "${srcdir}/dmenu-allow-color-font-5.2.diff" || true
+  cd "${srcdir}/${pkgname}"
   cp "${srcdir}/config.h" .
 }
 
 build() {
-  cd "${srcdir}/dmenu-${pkgver}"
+  cd "${srcdir}/${pkgname}"
   make
 }
 
 package() {
-  cd "${srcdir}/dmenu-${pkgver}"
+  cd "${srcdir}/${pkgname}"
   make DESTDIR="${pkgdir}" PREFIX=/usr install
   install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
 }
