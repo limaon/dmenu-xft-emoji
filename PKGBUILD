@@ -17,13 +17,15 @@ provides=('dmenu')
 conflicts=('dmenu' 'dmenu-git')
 
 source=(
-  "git+https://github.com/limaon/dmenu-xft-emoji.git#tag=v${pkgver}"
+  "https://dl.suckless.org/tools/dmenu-${pkgver}.tar.gz"
+  "dmenu-allow-color-font-5.2.diff"
   "config.h"
 )
-sha256sums=('SKIP' 'SKIP')
+sha256sums=('SKIP' 'SKIP' 'SKIP')
 
 prepare() {
-  cd "${srcdir}/${pkgname}"
+  cd "${srcdir}/dmenu-${pkgver}"
+  patch -Np1 --silent -i "${srcdir}/dmenu-allow-color-font-5.2.diff"
   cp "${srcdir}/config.h" .
 }
 
