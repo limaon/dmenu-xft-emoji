@@ -3,263 +3,225 @@ name: Check and Update dmenu Version
 on:
   schedule:
     # Run daily at 00:00 UTC (check for new dmenu versions)
-    - cron: '0 0 * * *'
+    - cron: "0 0 * * *"
   workflow_dispatch: # Allow manual trigger
 
 jobs:
   check-update:
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-    - name: Check for updates
-      id: check
-      shell: bash
-      run: |
-        set -e
-        
-        echo "🔍 Checking for latest dmenu version..."
-        
-        # Get current version from PKGBUILD
-        CURRENT_VERSION=$(grep "^pkgver=" PKGBUILD | cut -d= -f2)
-        echo "Current version: $CURRENT_VERSION"
-        
-        # Get latest version from suckless.org
-        LATEST_VERSION=$(curl -s "https://tools.suckless.org/dmenu/" | \
-          grep -oE 'dmenu-[0-9]+\.[0-9]+(\.[0-9]+)?' | \
-          sed 's/dmenu-//' | \
-          sort -V -t. -k1,1n -k2,2n -k3,3n | \
-          tail -1)
-        
-        # Fallback: try known versions if HTML parsing fails
-        if [ -z "$LATEST_VERSION" ]; then
-          echo "HTML parsing failed, trying direct checks..."
-          for major in {10..4}; do
-            for minor in {9..0}; do
-              version="${major}.${minor}"
-              if curl -s --head --fail "https://dl.suckless.org/tools/dmenu-${version}.tar.gz" > /dev/null 2>&1; then
-                LATEST_VERSION="$version"
-                break 2
-              fi
+      - name: Check for updates
+        id: check
+        shell: bash
+        run: |
+          set -e
+
+          echo "🔍 Checking for latest dmenu version..."
+
+          # Get current version from PKGBUILD
+          CURRENT_VERSION=$(grep "^pkgver=" PKGBUILD | cut -d= -f2)
+          echo "Current version: $CURRENT_VERSION"
+
+          # Get latest version from suckless.org
+          LATEST_VERSION=$(curl -s "https://tools.suckless.org/dmenu/" | \
+            grep -oE 'dmenu-[0-9]+\.[0-9]+(\.[0-9]+)?' | \
+            sed 's/dmenu-//' | \
+            sort -V -t. -k1,1n -k2,2n -k3,3n | \
+            tail -1)
+
+          # Fallback: try known versions if HTML parsing fails
+          if [ -z "$LATEST_VERSION" ]; then
+            echo "HTML parsing failed, trying direct checks..."
+            for major in {10..4}; do
+              for minor in {9..0}; do
+                version="${major}.${minor}"
+                if curl -s --head --fail "https://dl.suckless.org/tools/dmenu-${version}.tar.gz" > /dev/null 2>&1; then
+                  LATEST_VERSION="$version"
+                  break 2
+                fi
+              done
             done
-          done
-        fi
-        
-        # Final fallback
-        if [ -z "$LATEST_VERSION" ]; then
-          LATEST_VERSION="5.4"
-          echo "⚠️ Using fallback version: $LATEST_VERSION"
-        fi
-        
-        echo "Latest version: $LATEST_VERSION"
-        echo "current=$CURRENT_VERSION" >> $GITHUB_OUTPUT
-        echo "latest=$LATEST_VERSION" >> $GITHUB_OUTPUT
-        
-        if [ "$CURRENT_VERSION" == "$LATEST_VERSION" ]; then
-          echo "✅ Already on latest version ($LATEST_VERSION)"
-          echo "needs_update=false" >> $GITHUB_OUTPUT
-          exit 0
-        fi
-        
-        echo "🆕 New version available: $CURRENT_VERSION → $LATEST_VERSION"
-        echo "needs_update=true" >> $GITHUB_OUTPUT
-
-    - name: Adapt patch for new version
-      if: steps.check.outputs.needs_update == 'true'
-      shell: bash
-      env:
-        CURRENT_VERSION: ${{ steps.check.outputs.current }}
-        LATEST_VERSION: ${{ steps.check.outputs.latest }}
-      run: |
-        set -e
-        
-        echo "🔧 Adapting patch from $CURRENT_VERSION to $LATEST_VERSION..."
-        
-        # Download both versions to adapt patch
-        mkdir -p /tmp/patch-work
-        cd /tmp/patch-work
-        
-        # Download new version
-        curl -L -f "https://dl.suckless.org/tools/dmenu-${LATEST_VERSION}.tar.gz" -o "new.tar.gz"
-        tar -xzf new.tar.gz
-        
-        # Backup original
-        cp -r "dmenu-${LATEST_VERSION}" "dmenu-${LATEST_VERSION}.orig"
-        
-        cd "dmenu-${LATEST_VERSION}"
-        
-        # Try to apply old patch
-        OLD_PATCH="${{ github.workspace }}/dmenu-allow-color-font-${CURRENT_VERSION}.diff"
-        
-        if [ -f "$OLD_PATCH" ] && patch --dry-run -p1 < "$OLD_PATCH" > /dev/null 2>&1; then
-          echo "✅ Patch applies cleanly"
-          patch -p1 < "$OLD_PATCH"
-        else
-          echo "⚠️ Patch needs adjustment or not found, trying anyway..."
-          if [ -f "$OLD_PATCH" ]; then
-            patch -p1 < "$OLD_PATCH" || true
           fi
-        fi
-        
-        # Create new patch
-        cd ..
-        if diff -Naur "dmenu-${LATEST_VERSION}.orig" "dmenu-${LATEST_VERSION}" > \
-          "${{ github.workspace }}/dmenu-allow-color-font-${LATEST_VERSION}.diff" 2>/dev/null; then
-          echo "✅ New patch created from diff"
-        else
-          # Fallback: adapt version strings in old patch
-          if [ -f "$OLD_PATCH" ]; then
-            sed "s/dmenu-${CURRENT_VERSION}/dmenu-${LATEST_VERSION}/g" "$OLD_PATCH" > \
-              "${{ github.workspace }}/dmenu-allow-color-font-${LATEST_VERSION}.diff"
-            echo "✅ Patch adapted using sed"
+
+          # Final fallback
+          if [ -z "$LATEST_VERSION" ]; then
+            LATEST_VERSION="5.4"
+            echo "⚠️ Using fallback version: $LATEST_VERSION"
+          fi
+
+          echo "Latest version: $LATEST_VERSION"
+          echo "current=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          echo "latest=$LATEST_VERSION" >> $GITHUB_OUTPUT
+
+          if [ "$CURRENT_VERSION" == "$LATEST_VERSION" ]; then
+            echo "✅ Already on latest version ($LATEST_VERSION)"
+            echo "needs_update=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          echo "🆕 New version available: $CURRENT_VERSION → $LATEST_VERSION"
+          echo "needs_update=true" >> $GITHUB_OUTPUT
+
+      - name: Adapt patch for new version
+        if: steps.check.outputs.needs_update == 'true'
+        shell: bash
+        env:
+          CURRENT_VERSION: ${{ steps.check.outputs.current }}
+          LATEST_VERSION: ${{ steps.check.outputs.latest }}
+        run: |
+          set -e
+
+          echo "🔧 Adapting patch from $CURRENT_VERSION to $LATEST_VERSION..."
+
+          # Download both versions to adapt patch
+          mkdir -p /tmp/patch-work
+          cd /tmp/patch-work
+
+          # Download new version
+          curl -L -f "https://dl.suckless.org/tools/dmenu-${LATEST_VERSION}.tar.gz" -o "new.tar.gz"
+          tar -xzf new.tar.gz
+
+          # Backup original
+          cp -r "dmenu-${LATEST_VERSION}" "dmenu-${LATEST_VERSION}.orig"
+
+          cd "dmenu-${LATEST_VERSION}"
+
+          # Try to apply old patch
+          OLD_PATCH="${{ github.workspace }}/dmenu-allow-color-font-${CURRENT_VERSION}.diff"
+
+          if [ -f "$OLD_PATCH" ] && patch --dry-run -p1 < "$OLD_PATCH" > /dev/null 2>&1; then
+            echo "✅ Patch applies cleanly"
+            patch -p1 < "$OLD_PATCH"
           else
-            echo "❌ Could not create patch - old patch not found"
-            exit 1
+            echo "⚠️ Patch needs adjustment or not found, trying anyway..."
+            if [ -f "$OLD_PATCH" ]; then
+              patch -p1 < "$OLD_PATCH" || true
+            fi
           fi
-        fi
 
-    - name: Update PKGBUILD and calculate checksums
-      if: steps.check.outputs.needs_update == 'true'
-      shell: bash
-      env:
-        CURRENT_VERSION: ${{ steps.check.outputs.current }}
-        LATEST_VERSION: ${{ steps.check.outputs.latest }}
-      run: |
-        set -e
-        
-        echo "📝 Updating PKGBUILD..."
-        
-        # Download new dmenu version for checksum
-        curl -L -f "https://dl.suckless.org/tools/dmenu-${LATEST_VERSION}.tar.gz" -o /tmp/dmenu.tar.gz
-        
-        # Calculate checksums
-        DMENU_CHECKSUM=$(sha256sum /tmp/dmenu.tar.gz | cut -d' ' -f1)
-        PATCH_CHECKSUM=$(sha256sum dmenu-allow-color-font-${LATEST_VERSION}.diff | cut -d' ' -f1)
-        CONFIG_CHECKSUM=$(sha256sum config.h | cut -d' ' -f1)
-        
-        echo "Checksums calculated:"
-        echo "  dmenu: $DMENU_CHECKSUM"
-        echo "  patch: $PATCH_CHECKSUM"
-        echo "  config: $CONFIG_CHECKSUM"
-        
-        # Use Python to update PKGBUILD properly
-        python3 << PYEOF
-import re
-import sys
-import os
+          # Create new patch
+          cd ..
+          if diff -Naur "dmenu-${LATEST_VERSION}.orig" "dmenu-${LATEST_VERSION}" > \
+            "${{ github.workspace }}/dmenu-allow-color-font-${LATEST_VERSION}.diff" 2>/dev/null; then
+            echo "✅ New patch created from diff"
+          else
+            # Fallback: adapt version strings in old patch
+            if [ -f "$OLD_PATCH" ]; then
+              sed "s/dmenu-${CURRENT_VERSION}/dmenu-${LATEST_VERSION}/g" "$OLD_PATCH" > \
+                "${{ github.workspace }}/dmenu-allow-color-font-${LATEST_VERSION}.diff"
+              echo "✅ Patch adapted using sed"
+            else
+              echo "❌ Could not create patch - old patch not found"
+              exit 1
+            fi
+          fi
 
-filename = 'PKGBUILD'
+      - name: Update PKGBUILD and calculate checksums
+        if: steps.check.outputs.needs_update == 'true'
+        shell: bash
+        env:
+          CURRENT_VERSION: ${{ steps.check.outputs.current }}
+          LATEST_VERSION: ${{ steps.check.outputs.latest }}
+        run: |
+          set -e
 
-with open(filename, 'r') as f:
-    content = f.read()
+          echo "📝 Updating PKGBUILD..."
 
-# Update pkgver
-content = re.sub(r'^pkgver=.*$', f'pkgver={os.environ["LATEST_VERSION"]}', content, flags=re.MULTILINE)
+          # Download new dmenu version for checksum
+          curl -L -f "https://dl.suckless.org/tools/dmenu-${LATEST_VERSION}.tar.gz" -o /tmp/dmenu.tar.gz
 
-# Reset pkgrel
-content = re.sub(r'^pkgrel=.*$', 'pkgrel=1', content, flags=re.MULTILINE)
+          # Calculate checksums
+          DMENU_CHECKSUM=$(sha256sum /tmp/dmenu.tar.gz | cut -d' ' -f1)
+          PATCH_CHECKSUM=$(sha256sum dmenu-allow-color-font-${LATEST_VERSION}.diff | cut -d' ' -f1)
+          CONFIG_CHECKSUM=$(sha256sum config.h | cut -d' ' -f1)
 
-# Update source URLs
-content = re.sub(
-    rf'dmenu-{re.escape(os.environ["CURRENT_VERSION"])}\.tar\.gz',
-    f'dmenu-{os.environ["LATEST_VERSION"]}.tar.gz',
-    content
-)
-content = re.sub(
-    rf'dmenu-allow-color-font-{re.escape(os.environ["CURRENT_VERSION"])}\.diff',
-    f'dmenu-allow-color-font-{os.environ["LATEST_VERSION"]}.diff',
-    content
-)
+          echo "Checksums calculated:"
+          echo "  dmenu: $DMENU_CHECKSUM"
+          echo "  patch: $PATCH_CHECKSUM"
+          echo "  config: $CONFIG_CHECKSUM"
 
-# Update prepare() function to use new version
-content = re.sub(
-    rf'\$\{{srcdir\}}/dmenu-{re.escape(os.environ["CURRENT_VERSION"])}',
-    f'${{srcdir}}/dmenu-{os.environ["LATEST_VERSION"]}',
-    content
-)
-content = re.sub(
-    rf'dmenu-allow-color-font-{re.escape(os.environ["CURRENT_VERSION"])}\.diff',
-    f'dmenu-allow-color-font-{os.environ["LATEST_VERSION"]}.diff',
-    content
-)
+          # Update PKGBUILD using sed
+          sed -i "s/^pkgver=.*$/pkgver=$LATEST_VERSION/" PKGBUILD
+          sed -i "s/^pkgrel=.*$/pkgrel=1/" PKGBUILD
+          sed -i "s|dmenu-${CURRENT_VERSION}\.tar\.gz|dmenu-${LATEST_VERSION}.tar.gz|g" PKGBUILD
+          sed -i "s|dmenu-allow-color-font-${CURRENT_VERSION}\.diff|dmenu-allow-color-font-${LATEST_VERSION}.diff|g" PKGBUILD
+          sed -i "s|\${srcdir}/dmenu-${CURRENT_VERSION}|\${srcdir}/dmenu-${LATEST_VERSION}|g" PKGBUILD
 
-# Update build() and package() functions
-content = re.sub(
-    rf'\$\{{srcdir\}}/dmenu-{re.escape(os.environ["CURRENT_VERSION"])}',
-    f'${{srcdir}}/dmenu-{os.environ["LATEST_VERSION"]}',
-    content
-)
+          # Update sha256sums - replace the entire block
+          awk -v dmenu_cs="$DMENU_CHECKSUM" -v patch_cs="$PATCH_CHECKSUM" -v config_cs="$CONFIG_CHECKSUM" '
+            /^sha256sums=/ {
+              in_sha256=1
+              print "sha256sums=('\''" dmenu_cs "'\''"
+              print "            '\''" patch_cs "'\''"
+              print "            '\''" config_cs "'\'')"
+              next
+            }
+            in_sha256 && /^\)/ {
+              in_sha256=0
+              next
+            }
+            in_sha256 { next }
+            { print }
+          ' PKGBUILD > PKGBUILD.new && mv PKGBUILD.new PKGBUILD
 
-# Replace sha256sums - find the block and replace it
-sha256_pattern = r'sha256sums=\([^)]*\)'
-sha256_replacement = f"""sha256sums=('{os.environ["DMENU_CHECKSUM"]}'
-            '{os.environ["PATCH_CHECKSUM"]}'
-            '{os.environ["CONFIG_CHECKSUM"]}')"""
+          echo "✅ PKGBUILD updated"
 
-content = re.sub(sha256_pattern, sha256_replacement, content, flags=re.DOTALL)
+      - name: Create Pull Request
+        if: steps.check.outputs.needs_update == 'true'
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: |
+            chore: Update dmenu from ${{ steps.check.outputs.current }} to ${{ steps.check.outputs.latest }}
 
-with open(filename, 'w') as f:
-    f.write(content)
+            - Updated PKGBUILD with new version and checksums
+            - Adapted patch for new version
+            - Reset pkgrel to 1
+          title: "Update dmenu from ${{ steps.check.outputs.current }} to ${{ steps.check.outputs.latest }}"
+          body: |
+            ## 🤖 Automatic Update
 
-print("✅ PKGBUILD updated successfully")
-PYEOF
-        
-        echo "✅ PKGBUILD updated"
+            This PR was automatically created by GitHub Actions to update dmenu to the latest version.
 
-    - name: Create Pull Request
-      if: steps.check.outputs.needs_update == 'true'
-      uses: peter-evans/create-pull-request@v5
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        commit-message: |
-          chore: Update dmenu from ${{ steps.check.outputs.current }} to ${{ steps.check.outputs.latest }}
-          
-          - Updated PKGBUILD with new version and checksums
-          - Adapted patch for new version
-          - Reset pkgrel to 1
-        title: "Update dmenu from ${{ steps.check.outputs.current }} to ${{ steps.check.outputs.latest }}"
-        body: |
-          ## 🤖 Automatic Update
-          
-          This PR was automatically created by GitHub Actions to update dmenu to the latest version.
-          
-          ### Changes:
-          - **Previous version:** `${{ steps.check.outputs.current }}`
-          - **New version:** `${{ steps.check.outputs.latest }}`
-          - Updated `PKGBUILD` with new version and checksums
-          - Adapted patch: `dmenu-allow-color-font-${{ steps.check.outputs.latest }}.diff`
-          - Reset `pkgrel` to 1
-          
-          ### 📋 Review Checklist:
-          - [ ] Review the changes
-          - [ ] Test the build: `makepkg -f`
-          - [ ] Verify patch works correctly
-          - [ ] If successful, merge this PR
-          
-          ### 🔄 Next Steps:
-          After merging, update the AUR package manually if needed:
-          ```bash
-          git add PKGBUILD .SRCINFO dmenu-allow-color-font-*.diff
-          git commit -m "Update to dmenu ${{ steps.check.outputs.latest }}"
-          git push aur master
-          ```
-        branch: update-dmenu-${{ steps.check.outputs.latest }}
-        delete-branch: true
-        labels:
-          - automated
-          - update
-        draft: false
+            ### Changes:
+            - **Previous version:** `${{ steps.check.outputs.current }}`
+            - **New version:** `${{ steps.check.outputs.latest }}`
+            - Updated `PKGBUILD` with new version and checksums
+            - Adapted patch: `dmenu-allow-color-font-${{ steps.check.outputs.latest }}.diff`
+            - Reset `pkgrel` to 1
 
-    - name: Summary
-      if: always()
-      run: |
-        if [ "${{ steps.check.outputs.needs_update }}" == "true" ]; then
-          echo "✅ Update PR created successfully!"
-          echo "Check the Pull Requests tab to review and merge."
-        else
-          echo "✅ No update needed - already on latest version"
-        fi
+            ### 📋 Review Checklist:
+            - [ ] Review the changes
+            - [ ] Test the build: `makepkg -f`
+            - [ ] Verify patch works correctly
+            - [ ] If successful, merge this PR
+
+            ### 🔄 Next Steps:
+            After merging, update the AUR package manually if needed:
+            ```bash
+            git add PKGBUILD .SRCINFO dmenu-allow-color-font-*.diff
+            git commit -m "Update to dmenu ${{ steps.check.outputs.latest }}"
+            git push aur master
+            ```
+          branch: update-dmenu-${{ steps.check.outputs.latest }}
+          delete-branch: true
+          labels:
+            - automated
+            - update
+          draft: false
+
+      - name: Summary
+        if: always()
+        run: |
+          if [ "${{ steps.check.outputs.needs_update }}" == "true" ]; then
+            echo "✅ Update PR created successfully!"
+            echo "Check the Pull Requests tab to review and merge."
+          else
+            echo "✅ No update needed - already on latest version"
+          fi
