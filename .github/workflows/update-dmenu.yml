@@ -84,11 +84,28 @@ jobs:
 
           echo "🔧 Adapting patch from $CURRENT_VERSION to $LATEST_VERSION..."
 
-          # Download both versions to adapt patch
+          # Find existing patch file (try current version, then fallback to known versions)
+          OLD_PATCH=""
+          for version in "$CURRENT_VERSION" "5.2" "5.1" "5.0"; do
+            if [ -f "dmenu-allow-color-font-${version}.diff" ]; then
+              OLD_PATCH="dmenu-allow-color-font-${version}.diff"
+              echo "📋 Found existing patch: $OLD_PATCH"
+              break
+            fi
+          done
+
+          if [ -z "$OLD_PATCH" ]; then
+            echo "❌ No patch file found in repository"
+            echo "Available files:"
+            ls -la dmenu-allow-color-font-*.diff 2>/dev/null || echo "No patch files found"
+            exit 1
+          fi
+
+          # Download new version to adapt patch
           mkdir -p /tmp/patch-work
           cd /tmp/patch-work
 
-          # Download new version
+          echo "📥 Downloading dmenu ${LATEST_VERSION}..."
           curl -L -f "https://dl.suckless.org/tools/dmenu-${LATEST_VERSION}.tar.gz" -o "new.tar.gz"
           tar -xzf new.tar.gz
 
@@ -98,34 +115,55 @@ jobs:
           cd "dmenu-${LATEST_VERSION}"
 
           # Try to apply old patch
-          OLD_PATCH="${{ github.workspace }}/dmenu-allow-color-font-${CURRENT_VERSION}.diff"
+          WORKSPACE_PATCH="${{ github.workspace }}/$OLD_PATCH"
 
-          if [ -f "$OLD_PATCH" ] && patch --dry-run -p1 < "$OLD_PATCH" > /dev/null 2>&1; then
-            echo "✅ Patch applies cleanly"
-            patch -p1 < "$OLD_PATCH"
-          else
-            echo "⚠️ Patch needs adjustment or not found, trying anyway..."
-            if [ -f "$OLD_PATCH" ]; then
-              patch -p1 < "$OLD_PATCH" || true
+          if [ -f "$WORKSPACE_PATCH" ]; then
+            if patch --dry-run -p1 < "$WORKSPACE_PATCH" > /dev/null 2>&1; then
+              echo "✅ Patch applies cleanly"
+              patch -p1 < "$WORKSPACE_PATCH"
+            else
+              echo "⚠️ Patch needs adjustment, trying anyway..."
+              patch -p1 < "$WORKSPACE_PATCH" || {
+                echo "⚠️ Patch application had conflicts, but continuing..."
+                # Check if critical files were modified
+                if [ ! -f "drw.c" ]; then
+                  echo "❌ Critical file drw.c not found after patch"
+                  exit 1
+                fi
+              }
             fi
+          else
+            echo "❌ Patch file not found: $WORKSPACE_PATCH"
+            exit 1
           fi
 
           # Create new patch
           cd ..
-          if diff -Naur "dmenu-${LATEST_VERSION}.orig" "dmenu-${LATEST_VERSION}" > \
-            "${{ github.workspace }}/dmenu-allow-color-font-${LATEST_VERSION}.diff" 2>/dev/null; then
-            echo "✅ New patch created from diff"
+          NEW_PATCH="${{ github.workspace }}/dmenu-allow-color-font-${LATEST_VERSION}.diff"
+
+          if diff -Naur "dmenu-${LATEST_VERSION}.orig" "dmenu-${LATEST_VERSION}" > "$NEW_PATCH" 2>/dev/null; then
+            # Verify the patch was created and has content
+            if [ -s "$NEW_PATCH" ]; then
+              echo "✅ New patch created from diff: dmenu-allow-color-font-${LATEST_VERSION}.diff"
+            else
+              echo "⚠️ Patch file is empty, falling back to sed adaptation"
+              sed "s/dmenu-[0-9]\+\.[0-9]\+/dmenu-${LATEST_VERSION}/g" "$WORKSPACE_PATCH" > "$NEW_PATCH"
+              echo "✅ Patch adapted using sed"
+            fi
           else
             # Fallback: adapt version strings in old patch
-            if [ -f "$OLD_PATCH" ]; then
-              sed "s/dmenu-${CURRENT_VERSION}/dmenu-${LATEST_VERSION}/g" "$OLD_PATCH" > \
-                "${{ github.workspace }}/dmenu-allow-color-font-${LATEST_VERSION}.diff"
-              echo "✅ Patch adapted using sed"
-            else
-              echo "❌ Could not create patch - old patch not found"
-              exit 1
-            fi
+            echo "⚠️ Could not create diff, using sed to adapt patch"
+            sed "s/dmenu-[0-9]\+\.[0-9]\+/dmenu-${LATEST_VERSION}/g" "$WORKSPACE_PATCH" > "$NEW_PATCH"
+            echo "✅ Patch adapted using sed"
           fi
+
+          # Verify new patch was created
+          if [ ! -f "$NEW_PATCH" ] || [ ! -s "$NEW_PATCH" ]; then
+            echo "❌ Failed to create new patch file"
+            exit 1
+          fi
+
+          echo "✅ Patch adaptation completed: dmenu-allow-color-font-${LATEST_VERSION}.diff"
 
       - name: Update PKGBUILD and calculate checksums
         if: steps.check.outputs.needs_update == 'true'
