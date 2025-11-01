@@ -211,9 +211,7 @@ jobs:
             ```
           branch: update-dmenu-${{ steps.check.outputs.latest }}
           delete-branch: true
-          labels:
-            - automated
-            - update
+          labels: automated,update
           draft: false
 
       - name: Summary
