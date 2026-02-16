@@ -1,14 +1,62 @@
 # dmenu-xft-emoji
 
-**dmenu** with native color-font (emoji) rendering and automatic CJK fallback (漢字、かな、カタカナ). Built on top of dmenu 5.4 with a small patch set and a cascading font stack (`Terminus → Noto Sans CJK JP → Noto Color Emoji → monospace`).
+**dmenu** with native color-font (emoji) rendering and automatic CJK fallback (漢字、かな、カタカナ). Built on top of dmenu 5.4 with a cascading font stack (`Terminus → Noto Sans CJK JP → Noto Color Emoji → monospace`).
 
 ## Features
 
-* **Emoji support** via the *allow‑color‑font* patch.
-* Seamless fallback for Chinese, Japanese and Korean glyphs.
-* Lean, easy‑to‑edit `config.h`.
-* Arch Linux package (`PKGBUILD`) that **provides dmenu** and can fully replace the stock build.
-* Upstream repo is tagged, making builds reproducible.
+* **Emoji support** - native since libXft 2.3.5 (no patch required)
+* Seamless fallback for Chinese, Japanese and Korean glyphs
+* **Mouse support** - click, scroll, and hover selection
+* **Password mode** - hide input with `-P` flag
+* **Tab navigation** - Tab/Shift+Tab to navigate items
+* Lean, easy‑to‑edit `config.h`
+* Arch Linux package (`PKGBUILD`) that **provides dmenu** and can fully replace the stock build
+* Upstream repo is tagged, making builds reproducible
+
+## Patches
+
+This fork includes the following patches:
+
+| Patch | Version | Description |
+| ----- | :-----: | ----------- |
+| `dmenu-mousesupport-5.4.diff` | 5.4 | Click to select, scroll to navigate, middle-click to paste |
+| `dmenu-mousesupport-motion-5.2.diff` | 5.2 | Hover to select items (extends mouse support) |
+| `dmenu-password-5.0.diff` | 5.0 | Hide input characters with `-P` flag |
+| `dmenu-tab-navigation-5.4.diff` | 5.4 | Tab navigates down, Shift+Tab navigates up |
+
+### Applying Patches
+
+```bash
+# Apply patches in order (motion depends on mouse support)
+git apply dmenu-mousesupport-5.4.diff
+git apply dmenu-mousesupport-motion-5.2.diff
+git apply dmenu-password-5.0.diff
+git apply dmenu-tab-navigation-5.4.diff
+
+# Build
+make clean && make
+```
+
+### Keyboard Shortcuts
+
+| Key | Action |
+| --- | ------ |
+| `Tab` | Navigate to next item |
+| `Shift+Tab` | Navigate to previous item |
+| `↑` / `↓` | Navigate items |
+| `Enter` | Select item |
+| `Esc` | Exit without selection |
+
+### Mouse Actions
+
+| Action | Result |
+| ------ | ------ |
+| Left-click | Select item / clear input |
+| Ctrl+Left-click | Multi-selection |
+| Right-click | Close dmenu |
+| Middle-click | Paste selection |
+| Scroll up/down | Navigate items |
+| Hover | Select item under cursor |
 
 ## Installation
 
@@ -42,9 +90,9 @@ graph LR
     U -->|"git fetch"| G
     G -->|"sync subset"| A
 
-    style U fill:#e1f5fe
-    style G fill:#e8f5e9
-    style A fill:#fff3e0
+    style U fill:#0277bd,stroke:#01579b,color:#fff
+    style G fill:#2e7d32,stroke:#1b5e20,color:#fff
+    style A fill:#f57c00,stroke:#e65100,color:#fff
 ```
 
 ## Updating from Upstream
@@ -71,11 +119,6 @@ git status                    # see conflicted files
 git checkout --ours FILE      # keep my changes (or --theirs for upstream)
 git add FILE
 git rebase --continue
-
-# Update patch file if drw.c changed
-git diff upstream/master -- drw.c > dmenu-allow-color-font-5.4.diff
-git add dmenu-allow-color-font-5.4.diff
-git commit -m "chore: Update patch for upstream"
 
 # Push to GitHub (force needed after rebase)
 git push github master --force
@@ -116,16 +159,7 @@ gitGraph
     commit id: "documentation"
 ```
 
-**After rebase:** My patches are replayed on top of the latest upstream.
-
-### Updating Checksums
-
-After modifying patch or config files:
-
-```bash
-sha256sum dmenu-allow-color-font-*.diff config.h
-# Update PKGBUILD sha256sums array accordingly
-```
+**After rebase:** My commits are replayed on top of the latest upstream.
 
 ## Syncing to AUR
 
@@ -139,28 +173,25 @@ flowchart TB
     subgraph GitHub["GitHub (master)"]
         G1[PKGBUILD]
         G2[config.h]
-        G3[*.diff]
-        G4[README.md]
-        G5[".github/ (ignored)"]
-        G6["dmenu.c, drw.c (source)"]
+        G3[README.md]
+        G4[".github/ (ignored)"]
+        G5["dmenu.c, drw.c (source)"]
     end
 
     subgraph AUR["AUR (master)"]
         A1[PKGBUILD]
         A2[config.h]
-        A3[*.diff]
-        A4[README.md]
-        A5[.SRCINFO]
+        A3[README.md]
+        A4[.SRCINFO]
     end
 
     G1 --> A1
     G2 --> A2
     G3 --> A3
-    G4 --> A4
 
+    style G4 fill:#d32f2f,stroke-dasharray: 5 5,color:#ffffff
     style G5 fill:#d32f2f,stroke-dasharray: 5 5,color:#ffffff
-    style G6 fill:#d32f2f,stroke-dasharray: 5 5,color:#ffffff
-    style A5 fill:#2e7d32,color:#ffffff
+    style A4 fill:#2e7d32,color:#ffffff
 ```
 
 ```bash
@@ -168,7 +199,7 @@ flowchart TB
 git checkout -b aur-sync aur/master
 
 # Copy only AUR-compatible files from master
-git checkout master -- PKGBUILD config.h dmenu-allow-color-font-*.diff README.md
+git checkout master -- PKGBUILD config.h README.md
 
 # Update .SRCINFO (must match PKGBUILD)
 # Edit .SRCINFO with new version, checksums, and source files
@@ -200,10 +231,8 @@ pkgbase = dmenu-xft-emoji
 	depends = fontconfig
 	optdepends = terminus-font: bitmap Terminus for X11
 	source = https://dl.suckless.org/tools/dmenu-5.4.tar.gz
-	source = dmenu-allow-color-font-5.4.diff
 	source = config.h
 	sha256sums = <dmenu-tarball-checksum>
-	sha256sums = <patch-checksum>
 	sha256sums = <config-checksum>
 
 pkgname = dmenu-xft-emoji
