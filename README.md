@@ -199,7 +199,7 @@ flowchart TB
 git checkout -b aur-sync aur/master
 
 # Copy only AUR-compatible files from master
-git checkout master -- PKGBUILD config.h README.md
+git checkout master -- PKGBUILD config.h README.md *.diff .SRCINFO
 
 # Update .SRCINFO (must match PKGBUILD)
 # Edit .SRCINFO with new version, checksums, and source files
@@ -220,9 +220,9 @@ The `.SRCINFO` file must be manually updated to match `PKGBUILD`:
 
 ```
 pkgbase = dmenu-xft-emoji
-	pkgdesc = dmenu with color-font (emoji) and CJK fallback support
+	pkgdesc = dmenu with emoji/CJK support, mouse, motion, password mode, tab navigation
 	pkgver = 5.4
-	pkgrel = 1
+	pkgrel = 2
 	url = https://tools.suckless.org/dmenu/
 	arch = x86_64
 	license = MIT
@@ -230,10 +230,24 @@ pkgbase = dmenu-xft-emoji
 	depends = libxinerama
 	depends = fontconfig
 	optdepends = terminus-font: bitmap Terminus for X11
+	optdepends = noto-fonts: base font family
+	optdepends = noto-fonts-cjk: CJK glyphs
+	optdepends = noto-fonts-emoji: color emoji
+	conflicts = dmenu
+	conflicts = dmenu-git
+	provides = dmenu
 	source = https://dl.suckless.org/tools/dmenu-5.4.tar.gz
 	source = config.h
+	source = dmenu-mousesupport-5.4.diff
+	source = dmenu-mousesupport-motion-5.2.diff
+	source = dmenu-password-5.0.diff
+	source = dmenu-tab-navigation-5.4.diff
 	sha256sums = <dmenu-tarball-checksum>
 	sha256sums = <config-checksum>
+	sha256sums = <patch1-checksum>
+	sha256sums = <patch2-checksum>
+	sha256sums = <patch3-checksum>
+	sha256sums = <patch4-checksum>
 
 pkgname = dmenu-xft-emoji
 ```
