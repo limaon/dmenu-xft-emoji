@@ -254,7 +254,7 @@ match(void)
 	static int tokn = 0;
 
 	char buf[sizeof text], *s;
-	int i, tokc = 0;
+	int i, tokc = 0, match_count = 0;
 	size_t len, textsize;
 	struct item *item, *lprefix, *lsubstr, *prefixend, *substrend;
 
@@ -280,6 +280,7 @@ match(void)
 			appenditem(item, &lprefix, &prefixend);
 		else
 			appenditem(item, &lsubstr, &substrend);
+		match_count++;
 	}
 	if (lprefix) {
 		if (matches) {
@@ -300,11 +301,7 @@ match(void)
 	curr = sel = matches;
 	/* recompute lines for vertical list based on actual matches */
 	if (max_lines > 0) {
-		struct item *item;
-		int count = 0;
-		for (item = matches; item && item->text; item = item->right)
-			count++;
-		lines = MIN(count, max_lines);
+		lines = MIN(match_count, max_lines);
 		if (lines == 0)
 			lines = 1; /* keep vertical mode, show input bar only */
 	}
