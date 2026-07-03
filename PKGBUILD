@@ -2,8 +2,8 @@
 
 pkgname=dmenu-xft-emoji
 pkgver=5.4
-pkgrel=2
-pkgdesc="dmenu with emoji/CJK support, mouse, motion, password mode and tab navigation"
+pkgrel=3
+pkgdesc="dmenu with emoji/CJK support, mouse, motion, password mode, tab navigation and dynamic height"
 arch=('x86_64')
 url="https://tools.suckless.org/dmenu/"
 license=('MIT')
@@ -24,6 +24,7 @@ source=(
   "dmenu-mousesupport-motion-5.4.diff"
   "dmenu-password-5.4.diff"
   "dmenu-tab-navigation-5.4.diff"
+  "dmenu-dynamic-height-5.4.diff"
 )
 sha256sums=(
   '8fbace2a0847aa80fe861066b118252dcc7b4ca0a0a8f3a93af02da8fb6cd453'
@@ -32,6 +33,7 @@ sha256sums=(
   '2610629d1c9a643bd15dc8d7057b6aa6c147780a1ab7c50b0df3d72660da0c0b'
   'adaa9ede195c492663273cea7c5f96409992421bf420b3a2a8e0c89259310716'
   '75c37cda26fb0ee98a6bad9751c878c8cb61f9e25f143cb0250a0152e6b67720'
+  'e58c8fbbff26460128d1d861236256eefcd128510f16eac82487a8b6324e7334'
 )
 
 prepare() {
@@ -45,6 +47,7 @@ prepare() {
   patch -Np1 -i "${srcdir}/dmenu-mousesupport-motion-5.4.diff"
   patch -Np1 -i "${srcdir}/dmenu-password-5.4.diff"
   patch -Np1 -i "${srcdir}/dmenu-tab-navigation-5.4.diff"
+  patch -Np1 -i "${srcdir}/dmenu-dynamic-height-5.4.diff"
 }
 
 build() {
