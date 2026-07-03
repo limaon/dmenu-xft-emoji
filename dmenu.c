@@ -37,6 +37,7 @@ static char text[BUFSIZ] = "";
 static char *embed;
 static int bh, mw, mh;
 static int inputw = 0, promptw, passwd = 0;
+static unsigned int max_lines = 0; /* user-requested number of lines (-l) */
 static int lrpad; /* sum of left and right padding */
 static size_t cursor;
 static struct item *items = NULL;
@@ -149,6 +150,20 @@ drawmenu(void)
 	struct item *item;
 	int x = 0, y = 0, w;
 	char *censort;
+
+	/* dynamically resize window for vertical list */
+	if (max_lines > 0) {
+		struct item *item;
+		int count = 0, new_mh;
+		for (item = curr; item && item != next; item = item->right)
+			count++;
+		new_mh = (count + 1) * bh;
+		if (new_mh != mh) {
+			mh = new_mh;
+			drw_resize(drw, mw, mh);
+			XResizeWindow(dpy, win, mw, mh);
+		}
+	}
 
 	drw_setscheme(drw, scheme[SchemeNorm]);
 	drw_rect(drw, 0, 0, mw, mh, 1, 1);
@@ -283,6 +298,16 @@ match(void)
 		matchend = substrend;
 	}
 	curr = sel = matches;
+	/* recompute lines for vertical list based on actual matches */
+	if (max_lines > 0) {
+		struct item *item;
+		int count = 0;
+		for (item = matches; item && item->text; item = item->right)
+			count++;
+		lines = MIN(count, max_lines);
+		if (lines == 0)
+			lines = 1; /* keep vertical mode, show input bar only */
+	}
 	calcoffsets();
 }
 
@@ -720,7 +745,7 @@ readstdin(void)
 	free(line);
 	if (items)
 		items[i].text = NULL;
-	lines = MIN(lines, i);
+	lines = MIN(max_lines, i);
 }
 
 static void
@@ -901,7 +926,7 @@ main(int argc, char *argv[])
 			usage();
 		/* these options take one argument */
 		else if (!strcmp(argv[i], "-l"))   /* number of lines in vertical list */
-			lines = atoi(argv[++i]);
+			max_lines = atoi(argv[++i]);
 		else if (!strcmp(argv[i], "-m"))
 			mon = atoi(argv[++i]);
 		else if (!strcmp(argv[i], "-p"))   /* adds prompt to left of input field */
