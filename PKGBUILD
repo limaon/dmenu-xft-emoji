@@ -2,8 +2,8 @@
 
 pkgname=dmenu-xft-emoji
 pkgver=5.4
-pkgrel=2
-pkgdesc="dmenu with emoji/CJK support, mouse, motion, password mode and tab navigation"
+pkgrel=3
+pkgdesc="dmenu with emoji/CJK support, mouse, motion, password mode, tab navigation and dynamic height"
 arch=('x86_64')
 url="https://tools.suckless.org/dmenu/"
 license=('MIT')
@@ -24,14 +24,16 @@ source=(
   "dmenu-mousesupport-motion-5.4.diff"
   "dmenu-password-5.4.diff"
   "dmenu-tab-navigation-5.4.diff"
+  "dmenu-dynamic-height-5.4.diff"
 )
 sha256sums=(
   '8fbace2a0847aa80fe861066b118252dcc7b4ca0a0a8f3a93af02da8fb6cd453'
-  'f07a3461e3aef6e1b7541fe0ddec7017643178873a93866f4adebd7ca56d58a0'
-  '52b2dd30efa52e38163baef428b41b01f6d4140c050436ba2bfcb68f2e89898d'
-  '2610629d1c9a643bd15dc8d7057b6aa6c147780a1ab7c50b0df3d72660da0c0b'
-  'adaa9ede195c492663273cea7c5f96409992421bf420b3a2a8e0c89259310716'
-  '75c37cda26fb0ee98a6bad9751c878c8cb61f9e25f143cb0250a0152e6b67720'
+  '053c3e114bb4b802f47286700db8cb4d58ae917a9c3fda9f1bcd72074e2d24fb'
+  '0328abab5b8f8d8ea65128ff04c102b740ef364e86e7b8fedc1a3e018a78f792'
+  'a03f973d1e648d56b8d188cee102a57c46816d23156f16b6b4916f1b5ffe49a8'
+  '672207ee3c15062311b4978d3b5ca6129e513a89a4205ee7373284db6c80c568'
+  '4ad158a439e1f40ee4c83b50ea6891c6ab72efed83132ab9792ab2100067b9c8'
+  '4535359f61ab903fb1d2e8afde59758cd007251460ccaeab7afa73354ba5bcff'
 )
 
 prepare() {
@@ -45,6 +47,7 @@ prepare() {
   patch -Np1 -i "${srcdir}/dmenu-mousesupport-motion-5.4.diff"
   patch -Np1 -i "${srcdir}/dmenu-password-5.4.diff"
   patch -Np1 -i "${srcdir}/dmenu-tab-navigation-5.4.diff"
+  patch -Np1 -i "${srcdir}/dmenu-dynamic-height-5.4.diff"
 }
 
 build() {
