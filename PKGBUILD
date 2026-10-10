@@ -25,6 +25,7 @@ source=(
   "dmenu-password-5.4.diff"
   "dmenu-tab-navigation-5.4.diff"
   "dmenu-dynamic-height-5.4.diff"
+  "dmenu-highlight-5.4.diff"
 )
 sha256sums=(
   '8fbace2a0847aa80fe861066b118252dcc7b4ca0a0a8f3a93af02da8fb6cd453'
@@ -34,6 +35,7 @@ sha256sums=(
   '672207ee3c15062311b4978d3b5ca6129e513a89a4205ee7373284db6c80c568'
   '4ad158a439e1f40ee4c83b50ea6891c6ab72efed83132ab9792ab2100067b9c8'
   '4535359f61ab903fb1d2e8afde59758cd007251460ccaeab7afa73354ba5bcff'
+  '8babed64305607e3ec411735cebbf995e27b03a20b9202aee7ec6f437f1c8c0e'
 )
 
 prepare() {
@@ -48,6 +50,7 @@ prepare() {
   patch -Np1 -i "${srcdir}/dmenu-password-5.4.diff"
   patch -Np1 -i "${srcdir}/dmenu-tab-navigation-5.4.diff"
   patch -Np1 -i "${srcdir}/dmenu-dynamic-height-5.4.diff"
+  patch -Np1 -i "${srcdir}/dmenu-highlight-5.4.diff"
 }
 
 build() {
